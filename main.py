@@ -14,15 +14,15 @@ def chunked(l, chunk_size):
 
 def chunked_by_date(events):
     events_on_date = []
-    current_date = events[-1].timestamp.date()
+    next_date = events[-1].timestamp.date() + timedelta(days=1)
     for e in sorted(events, reverse=False, key=lambda e: e.timestamp):
-        # print(e.timestamp.date(), current_date + timedelta(days=1))
-        if e.timestamp.date() < current_date + timedelta(days=1):
+        # print(e.timestamp.date(), next_date)
+        if e.timestamp.date() < next_date:
             events_on_date.append(e)
         else:
             yield events_on_date
-            # print(current_date)
-            current_date = e.timestamp.date()
+            # print(next_date)
+            next_date = e.timestamp.date() + timedelta(days=1)
             events_on_date = [e]
     yield events_on_date
 
@@ -35,19 +35,18 @@ def main():
         events = api.get_events(bucket_id, limit=-1)
         print("bucket: {}\nevent count: {}".format(bucket_id, len(events)))
 
-        """
         print("# Unfiltered")
         compress(events)
 
-        print("# Filtered")
-        compress(filter_short(events))
-        """
+        if False:
+            print("# Filtered")
+            compress(filter_short(events))
 
         print("# Chunked (n=1000)")
-        bench_chunks(chunked(events, 1000))
+        bench_chunks(list(chunked(events, 1000)))
 
         print("# Chunked (by date)")
-        bench_chunks(chunked_by_date(events))
+        bench_chunks(list(chunked_by_date(events)))
 
         print("=" * 20)
 
@@ -56,6 +55,7 @@ def bench_chunks(chunks: List[List[Event]]):
     total_size = 0
     for chunk in chunks:
         total_size += len(compress(chunk, stats=False))
+    print("number of chunks: {}".format(len(chunks)))
     print("total size of all chunks: {}".format(total_size))
 
 
